@@ -8,6 +8,6 @@ date: "| MMMM dd, YYYY | Datasite"
 
 **Site Reliability Engineer** @ Datasite | Certified Kubernetes Administrator | 10 years of experience in IT
 
-Homelab & Music Nerd | Visual Artist
+Professional Nerd | Homelab | Visual Artist
 
 ---
