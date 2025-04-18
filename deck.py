@@ -128,14 +128,101 @@ def contact_slide(triggers: Triggers) -> RenderableType:
 
     return format_content(content, current=len(triggers), total=len(contacts))
 
-
-@deck.slide(title="Markdown Slide")
+@deck.slide(title="Agenda")
 def markdown_slide(triggers: Triggers) -> RenderableType:
-    """Generic markdown slide with trigger-based reveal."""
     # Base markdown content with multiple sections
     markdown_sections = [
         """
-        # Main Topic
+        # Agenda
+
+        Estos son los temas que vamos a ver el día de hoy:
+        """,
+
+        """
+        ## Second Point
+
+        1. Numbered item one
+        2. Numbered item two
+        3. Numbered item three
+        """,
+
+        """
+        ### Pausa
+        
+        Vamos a tener una pausa de 12 minutos.
+        """,
+    ]
+
+    # Show only the sections that have been triggered
+    visible_sections = markdown_sections[:min(len(triggers), len(markdown_sections))]
+    combined_markdown = "\n".join(visible_sections)
+
+    # Instructions text at the bottom if not all sections shown
+    content = styled_markdown(combined_markdown)
+
+    if len(triggers) < len(markdown_sections):
+
+        content = Group(content)
+
+    return format_content(content, current=len(triggers), total=len(markdown_sections))
+
+@deck.slide(title="Linux Namespaces")
+def markdown_slide(triggers: Triggers) -> RenderableType:
+    markdown_sections = [
+        """
+        # Linux Namespaces
+
+        También llamados espacios de nombre en Linux.
+        """,
+
+        """
+        ## First Point
+
+        * This is the first bullet point
+        * With some important details
+        * And key considerations
+        """,
+
+        """
+        ## Second Point
+
+        1. Numbered item one
+        2. Numbered item two
+        3. Numbered item three
+        """,
+
+        """
+        ### Additional Details
+
+        ```python
+        def example_code():
+            print("This is some example code")
+            return True
+        ```
+        """,
+    ]
+
+    # Show only the sections that have been triggered
+    visible_sections = markdown_sections[:min(len(triggers), len(markdown_sections))]
+    combined_markdown = "\n".join(visible_sections)
+
+    # Instructions text at the bottom if not all sections shown
+    content = styled_markdown(combined_markdown)
+
+    if len(triggers) < len(markdown_sections):
+
+        content = Group(content)
+
+    return format_content(content, current=len(triggers), total=len(markdown_sections))
+
+
+
+@deck.slide(title="Template for Markdown")
+def markdown_slide(triggers: Triggers) -> RenderableType:
+    # Base markdown content with multiple sections
+    markdown_sections = [
+        """
+        # Template for Markdown
 
         This is the introduction to the main topic.
         """,
@@ -175,11 +262,8 @@ def markdown_slide(triggers: Triggers) -> RenderableType:
     content = styled_markdown(combined_markdown)
 
     if len(triggers) < len(markdown_sections):
-        instructions = Text("Press 't' to continue", style=Style(dim=True))
-        content = Group(
-            content,
-            Align.center(instructions),
-        )
+
+        content = Group(content)
 
     return format_content(content, current=len(triggers), total=len(markdown_sections))
 
