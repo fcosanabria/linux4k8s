@@ -658,6 +658,8 @@ Máquinas virtuales independientes: Cada una con:
 
 La característica más destacable es que cada máquina virtual funciona como un SO e independiente, con su propio sistema operativo. Implica mayor sobrecarga pero también un mayor aislamiento.
 
+<!-- Es como una duplicacion de recursos. -->
+
 ```mermaid
 
 flowchart LR
@@ -709,7 +711,7 @@ Contenedores
 El segundo diagrama muestra el enfoque radicalmente diferente de los contenedores:
 
 - Base física: El mismo hardware subyacente.
-- Sistema operativo host con kernel Linux: A diferencia de las VMs, existe un único sistema operativo y un único kernel compartido entre todos los contenedores.
+- Sistema operativo host con kernel Linux: A diferencia de las VMs, existe un único sistema operativo y un único kernel compartido entre todos los contenedores. Lo que los hace mucho más ligeros pero también menos aislados que las VMs. Es importante remarcar que aislado no se solapa con seguridad, pero seguridad si solapa con aislamiento. 
 
 Características del kernel Linux: 
 - Los contenedores funcionan gracias a estas tecnologías nativas:
@@ -719,6 +721,7 @@ Características del kernel Linux:
 - Union File Systems: Permiten el sistema de capas para imágenes
 - Mecanismos de seguridad: Como capacidades, SELinux, AppArmor y otras
 
+Los contenedores no incluyen sistemas operativos completos, solo los binarios y bibliotecas necesarios para las aplicaciones. 
 
  -->
 
@@ -765,7 +768,318 @@ flowchart LR
 
 ---
 
-# DESPUES: Demostración de resolución DNS en Docker
+```mermaid
+flowchart TD
+    subgraph Docker["Docker"]
+        direction TB
+        DockerDaemon["Docker Daemon"] --> DriverAPI["Execution Driver API"]
+        DriverAPI --> NativeDriver["Native Execution Driver"]
+        NativeDriver --> Libcontainer["libcontainer"]
+    end
+    
+    Libcontainer --> |Utiliza| LXC["LXC"]
+    Libcontainer --> |Utiliza| SystemdNspawn["systemd-nspawn"]
+    Libcontainer --> |Utiliza| Libvirt["libvirt"]
+    
+    subgraph LinuxKernel["Linux Kernel"]
+        direction LR
+        subgraph KernelFeatures["Características del Kernel"]
+            direction TB
+            Namespaces["Namespaces\n(ipc, uts, mount, pid,\nnetwork and user)"]
+            Cgroups["Cgroups\n(control groups)"]
+            AppArmor["AppArmor &\nSELinux Profiles"]
+            NetworkDevices["Network Devices"]
+            Chroot["Chroot\n(using pivot_root)"]
+            Seccomp["Seccomp\nPolicies"]
+        end
+    end
+    
+    Libcontainer --> KernelFeatures
+    LXC --> KernelFeatures
+    SystemdNspawn --> KernelFeatures
+    Libvirt --> KernelFeatures
+    
+    LinuxKernel --> Hardware["Physical Hardware"]
+    
+    %% Estilos
+    style Docker fill:#bbdefb,stroke:#2196f3,stroke-width:2px
+    style DockerDaemon fill:#2196f3,color:white,stroke:#1565c0,stroke-width:1px,font-weight:bold
+    style DriverAPI fill:#64b5f6,color:white,stroke:#1565c0,stroke-width:1px
+    style NativeDriver fill:#2196f3,color:white,stroke:#1565c0,stroke-width:1px
+    style Libcontainer fill:#2196f3,color:white,stroke:#1565c0,stroke-width:1px
+    
+    style LXC fill:#9e9e9e,color:white,stroke:#616161,stroke-width:1px
+    style SystemdNspawn fill:#9e9e9e,color:white,stroke:#616161,stroke-width:1px
+    style Libvirt fill:#9e9e9e,color:white,stroke:#616161,stroke-width:1px
+    
+    style LinuxKernel fill:#bbdefb,stroke:#2196f3,stroke-width:2px
+    style KernelFeatures fill:#bbdefb,stroke:none
+    
+    style Namespaces fill:#2196f3,color:white,stroke:#1565c0,stroke-width:1px,font-weight:bold
+    style Cgroups fill:#2196f3,color:white,stroke:#1565c0,stroke-width:1px,font-weight:bold
+    style AppArmor fill:#2196f3,color:white,stroke:#1565c0,stroke-width:1px,font-weight:bold
+    style NetworkDevices fill:#2196f3,color:white,stroke:#1565c0,stroke-width:1px,font-weight:bold
+    style Chroot fill:#2196f3,color:white,stroke:#1565c0,stroke-width:1px,font-weight:bold
+    style Seccomp fill:#2196f3,color:white,stroke:#1565c0,stroke-width:1px,font-weight:bold
+    
+    style Hardware fill:#795548,color:white,stroke:#5d4037,stroke-width:1px,font-weight:bold
+```
+
+---
+
+# Registros y Obtención de Imágenes
+
+Una guía práctica para trabajar con repositorios de imágenes.
+
+<!-- https://docs.docker.com/engine/install/ -->
+
+<!-- Ok, a partir de ahora, ya que conocemos como luce la arquitectura de un contenedor, entonces ahora, ya podemos empezar a trabajar con ellos. 
+
+Felicidades, ya ahora ustedes saben que el concepto de contenedores, ya no es magia. Ya saben de donde vienen, su origen y como funcionan desde el lado del sistema operativo. Solo que nos falta ahora un concepto más. Que es importante para seguir.-->
+
+<!-- Resulta que de algun lado, nosotros tenemos que sacar los contenedores, de alguna manera se tienen que construir, tiene que haber algo antes del contenedor, para que eso exista, cierto? Bueno, aqui viene ese concepto que les decia que hacia falta; las imagenes. 
+
+Las imagenes son basicamente lo que nos permite construir los contenedores. Son la referencia real, y unica de la construcción del contenedor. Estas imagenes incluyen el codigo de la aplicación, las bibliotecas necesarias, y las depencendicias, binarios y demás. 
+
+Algo muy similar a las imagenes ISO cuando instalamos un sistema operativo, solo que sin el sistema operativo y ese montón de cosas más.
+-->
+
+
+---
+
+# Docker Hub
+
+<div v-click>
+Es el registro público más utilizado, con miles de imágenes oficiales y de la comunidad.
+</div>
+
+<div v-click>
+```bash
+# Verificar que puedes acceder a Docker Hub
+docker search nginx
+```
+</div>
+
+<div v-click>
+<div class="mt-6">
+<h3>¿Qué ofrece Docker Hub?</h3>
+
+- Imágenes oficiales verificadas por Docker
+- Miles de imágenes de la comunidad
+- Repositorios gratuitos y de pago
+- Integración con herramientas de CI/CD
+</div>
+</div>
+
+---
+
+# Quay.io
+
+<div v-click>
+Un registro alternativo mantenido por Red Hat, popular en entornos empresariales.
+</div>
+
+<div v-click>
+```bash
+# Ejemplo de descarga desde Quay.io
+docker pull quay.io/prometheus/prometheus
+```
+</div>
+
+<div v-click>
+<div class="mt-6">
+<h3>Características de Quay.io</h3>
+
+- Soporte para análisis de vulnerabilidades
+- Políticas de seguridad avanzadas
+- Historial de construcción visible
+- Popular en entornos Red Hat y OpenShift
+</div>
+</div>
+
+
+---
+
+# Registros Privados
+
+<div v-click>
+Útiles para imágenes propietarias o entornos corporativos que requieren control de acceso.
+</div>
+
+<div v-click>
+
+```bash
+# Autenticación en un registro privado
+docker login mi-registro-privado.ejemplo.com
+
+# Pull desde un registro privado
+docker pull mi-registro-privado.ejemplo.com/mi-app:1.0
+```
+</div>
+
+> Esto depende mucho de las necesidades de la empresa.
+
+<!--  Por defecto, en nuestra empresa, usamos credenciales configuradas en nuestro entorno de desarrollo usando JFrog, Harbor un VPN. 
+
+Harbor es una solición de Self-Hosting, que permite ternerlo en nuestra propia infraestructura, entonces no necesitamos usar un docker login para el pull de imagenes, si no que al ya esta dentro de nuestras redes internas con el VPN y variables de entorno seteadas en nuestro .zshrc o .bashrc podemos comunicarnos con Harbor. -->
+
+<div v-click>
+
+Beneficios de registros privados
+
+- Control total sobre las imágenes
+- Confidencialidad de código propietario
+- Velocidad de descarga en redes internas
+- Cumplimiento de políticas empresariales
+
+</div>
+
+---
+
+
+# Comando <span v-mark.circle.red="1">pull</span>: Obtención de Imágenes y Tags
+
+<div v-click>
+El comando <code>pull</code> descarga imágenes de contenedores desde registros.
+</div>
+
+<div v-click>
+```bash
+# Formato básico: docker pull [registro/]imagen[:etiqueta]
+```
+</div>
+
+<div v-click>
+<div class="mt-4">
+<h3>Ejemplos de uso</h3>
+
+```bash
+# Pull de la última versión (tag "latest")
+docker pull nginx
+
+# Pull de una versión específica
+docker pull nginx:1.21.6-alpine
+
+# Pull desde un registro específico con namespace
+docker pull gcr.io/kubernetes-e2e-test-images/dnsutils:1.1
+```
+</div>
+</div>
+
+---
+
+# Anatomía de un Nombre de Imagen
+
+<div v-click>
+<div class="grid grid-cols-3 gap-4">
+  <div class="text-center p-2 border rounded">
+    <h4>Registro</h4>
+    <p class="text-sm">(opcional, por defecto Docker Hub)</p>
+    <p><span v-mark.underline.blue="1">quay.io</span>/prometheus/prometheus</p>
+  </div>
+  <div class="text-center p-2 border rounded">
+    <h4>Namespace/Imagen</h4>
+    <p class="text-sm">(requerido)</p>
+    <p>quay.io/<span v-mark.underline.green="1">prometheus/prometheus</span></p>
+  </div>
+  <div class="text-center p-2 border rounded">
+    <h4>Tag</h4>
+    <p class="text-sm">(opcional, por defecto latest)</p>
+    <p>nginx:<span v-mark.underline.orange="1">1.21.6-alpine</span></p>
+  </div>
+</div>
+</div>
+
+<div v-click>
+<div class="mt-8">
+<p>Cuando no se especifica un registro, Docker Hub se usa por defecto:</p>
+
+```bash
+docker pull nginx
+
+# Equivalente a:
+docker pull docker.io/library/nginx:latest
+```
+</div>
+</div>
+
+---
+
+# Consejos Prácticos para Trabajar con Registros
+
+<div v-click>
+<h3>Buenas prácticas</h3>
+
+- Evitar usar la etiqueta <code>latest</code> en producción
+- Usar etiquetas específicas para garantizar reproducibilidad
+
+</div>
+
+<div v-click>
+<h3>Verificación y seguridad</h3>
+
+```bash
+# Verificar la información de una imagen antes de usarla
+docker inspect nginx:1.21.6-alpine
+
+# Ver las capas de una imagen
+docker history nginx:1.21.6-alpine
+```
+</div>
+
+<!-- Esto es util, por que ultimamente se ha dado que hay codigo malicioso. Pero han sido casos super aislados y unicos muy especificos. Por lo que no habriamos que preocuparnos, pero ninguna precaución nunca está de más. Además en un buen entorno de CI/CD con un buen equipo de ingenieria y operaciones, esta verificación se implementa de manera estatica en registro implementado. Pero bueno, ese es otro tema. -->
+
+---
+
+# Inspección de Contenedores
+
+Docker proporciona herramientas para examinar contenedores
+
+```bash
+# Contenedores en ejecución
+docker ps
+
+# Todos los contenedores (incluidos los detenidos)
+docker ps -a
+
+# Ver solo IDs
+docker ps -q
+
+# Ver imagenes
+docker images ls
+
+# Detalles en formato json
+docker inspect my-container
+```
+
+---
+
+# Logs y Monitoreo básico
+
+```bash
+
+# Ver todos los logs
+docker logs my-container
+
+# Seguir logs en tiempo real (como tail -f)
+docker logs -f my-container
+
+# Ver los últimos N logs
+docker logs --tail=10 my-container
+
+# Ver logs con timestamps
+docker logs -t my-container
+
+# Monitoreo básico de CPU, memoria, red y I/O
+docker stats mi-contenedor
+
+```
+
+<!-- Entrada/Salida -->
+
+---
+
+# Demostración de resolución DNS en Docker
 
 <div v-click>
 Creación de una red con DNS personalizado
@@ -854,504 +1168,105 @@ Por defecto, los contenedores en diferentes redes <span v-mark.circle.red="2">no
 
 </div>
 
-
----
-# Code
-
-Use code snippets and get the highlighting directly, and even types hover!
-
-```ts {all|5|7|7-8|10|all} twoslash
-// TwoSlash enables TypeScript hover information
-// and errors in markdown code blocks
-// More at https://shiki.style/packages/twoslash
-
-import { computed, ref } from 'vue'
-
-const count = ref(0)
-const doubled = computed(() => count.value * 2)
-
-doubled.value = 2
-```
-
-<arrow v-click="[4, 5]" x1="350" y1="310" x2="195" y2="334" color="#953" width="2" arrowSize="1" />
-
-<!-- This allow you to embed external code blocks -->
-<<< @/snippets/external.ts#snippet
-
-<!-- Footer -->
-
-[Learn more](https://sli.dev/features/line-highlighting)
-
-<!-- Inline style -->
-<style>
-.footnotes-sep {
-  @apply mt-5 opacity-10;
-}
-.footnotes {
-  @apply text-sm opacity-75;
-}
-.footnote-backref {
-  display: none;
-}
-</style>
-
-<!--
-Notes can also sync with clicks
-
-[click] This will be highlighted after the first click
-
-[click] Highlighted with `count = ref(0)`
-
-[click:3] Last click (skip two clicks)
--->
-
----
-level: 2
 ---
 
-# Shiki Magic Move
+# HandsOn 2.1
+Registro y obtención de imágenes
 
-Powered by [shiki-magic-move](https://shiki-magic-move.netlify.app/), Slidev supports animations across multiple code snippets.
+1. Buscar imágenes de bases de datos en Docker Hub
+2. Descargar versiones específicas
+3. Explorar metadatos de las imágenes
+4. Crear una cuenta en Docker Hub y autenticarse
+5. Etiquetar y subir una imagen a tu cuenta
 
-Add multiple code blocks and wrap them with <code>````md magic-move</code> (four backticks) to enable the magic move. For example:
+<!-- 
 
-````md magic-move {lines: true}
-```ts {*|2|*}
-// step 1
-const author = reactive({
-  name: 'John Doe',
-  books: [
-    'Vue 2 - Advanced Guide',
-    'Vue 3 - Basic Guide',
-    'Vue 4 - The Mystery'
-  ]
-})
-```
+1. Buscar imágenes de bases de datos en Docker Hub:
 
-```ts {*|1-2|3-4|3-4,8}
-// step 2
-export default {
-  data() {
-    return {
-      author: {
-        name: 'John Doe',
-        books: [
-          'Vue 2 - Advanced Guide',
-          'Vue 3 - Basic Guide',
-          'Vue 4 - The Mystery'
-        ]
-      }
-    }
-  }
-}
-```
+docker search postgres
+docker search mysql
 
-```ts
-// step 3
-export default {
-  data: () => ({
-    author: {
-      name: 'John Doe',
-      books: [
-        'Vue 2 - Advanced Guide',
-        'Vue 3 - Basic Guide',
-        'Vue 4 - The Mystery'
-      ]
-    }
-  })
-}
-```
+2. Descargar versiones específicas:
 
-Non-code blocks are ignored.
+docker pull postgres:13-alpine
+docker pull mysql: 8.0
 
-```vue
-<!-- step 4 -->
-<script setup>
-const author = {
-  name: 'John Doe',
-  books: [
-    'Vue 2 - Advanced Guide',
-    'Vue 3 - Basic Guide',
-    'Vue 4 - The Mystery'
-  ]
-}
-</script>
-```
-````
+3. Explorar metadatos de las imágenes:
+
+docker image inspect postgres:13-alpine
+
+4. Crear una cuenta en Docker Hub y autenticarse:
+
+docker login
+
+5. Etiquetar y subir una imagen a tu cuenta:
+
+docker pull hello-world
+docker tag hello-world tu-usuario/mi-hello-world:v1
+docker push tu-usuario/mi-hello-world:v1
+
+ -->
 
 ---
 
-# Components
+# HandsOn 2.2
 
-<div grid="~ cols-2 gap-4">
-<div>
+1. Crear una red para que los contenedores se comuniquen:
 
-You can use Vue components directly inside your slides.
-
-We have provided a few built-in components like `<Tweet/>` and `<Youtube/>` that you can use directly. And adding your custom components is also super easy.
-
-```html
-<Counter :count="10" />
+```bash
+docker network create lamp-network
 ```
-
-<!-- ./components/Counter.vue -->
-<Counter :count="10" m="t-4" />
-
-Check out [the guides](https://sli.dev/builtin/components.html) for more.
-
-</div>
-<div>
-
-```html
-<Tweet id="1390115482657726468" />
-```
-
-<Tweet id="1390115482657726468" scale="0.65" />
-
-</div>
-</div>
-
-<!--
-Presenter note with **bold**, *italic*, and ~~striked~~ text.
-
-Also, HTML elements are valid:
-<div class="flex w-full">
-  <span style="flex-grow: 1;">Left content</span>
-  <span>Right content</span>
-</div>
--->
-
----
-class: px-20
----
-
-# Themes
-
-Slidev comes with powerful theming support. Themes can provide styles, layouts, components, or even configurations for tools. Switching between themes by just **one edit** in your frontmatter:
-
-<div grid="~ cols-2 gap-2" m="t-2">
-
-```yaml
----
-theme: default
----
-```
-
-```yaml
----
-theme: seriph
----
-```
-
-<img border="rounded" src="https://github.com/slidevjs/themes/blob/main/screenshots/theme-default/01.png?raw=true" alt="">
-
-<img border="rounded" src="https://github.com/slidevjs/themes/blob/main/screenshots/theme-seriph/01.png?raw=true" alt="">
-
-</div>
-
-Read more about [How to use a theme](https://sli.dev/guide/theme-addon#use-theme) and
-check out the [Awesome Themes Gallery](https://sli.dev/resources/theme-gallery).
-
----
-
-# Clicks Animations
-
-You can add `v-click` to elements to add a click animation.
-
-<div v-click>
-
-This shows up when you click the slide:
-
-```html
-<div v-click>This shows up when you click the slide.</div>
-```
-
-</div>
-
-<br>
-
-<v-click>
-
-The <span v-mark.red="3"><code>v-mark</code> directive</span>
-also allows you to add
-<span v-mark.circle.orange="4">inline marks</span>
-, powered by [Rough Notation](https://roughnotation.com/):
-
-```html
-<span v-mark.underline.orange>inline markers</span>
-```
-
-</v-click>
-
-<div mt-20 v-click>
-
-[Learn more](https://sli.dev/guide/animations#click-animation)
-
-</div>
-
----
-
-# Motions
-
-Motion animations are powered by [@vueuse/motion](https://motion.vueuse.org/), triggered by `v-motion` directive.
-
-```html
-<div
-  v-motion
-  :initial="{ x: -80 }"
-  :enter="{ x: 0 }"
-  :click-3="{ x: 80 }"
-  :leave="{ x: 1000 }"
->
-  Slidev
-</div>
-```
-
-<div class="w-60 relative">
-  <div class="relative w-40 h-40">
-    <img
-      v-motion
-      :initial="{ x: 800, y: -100, scale: 1.5, rotate: -50 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-square.png"
-      alt=""
-    />
-    <img
-      v-motion
-      :initial="{ y: 500, x: -100, scale: 2 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-circle.png"
-      alt=""
-    />
-    <img
-      v-motion
-      :initial="{ x: 600, y: 400, scale: 2, rotate: 100 }"
-      :enter="final"
-      class="absolute inset-0"
-      src="https://sli.dev/logo-triangle.png"
-      alt=""
-    />
-  </div>
-
-  <div
-    class="text-5xl absolute top-14 left-40 text-[#2B90B6] -z-1"
-    v-motion
-    :initial="{ x: -80, opacity: 0}"
-    :enter="{ x: 0, opacity: 1, transition: { delay: 2000, duration: 1000 } }">
-    Slidev
-  </div>
-</div>
-
-<!-- vue script setup scripts can be directly used in markdown, and will only affects current page -->
-<script setup lang="ts">
-const final = {
-  x: 0,
-  y: 0,
-  rotate: 0,
-  scale: 1,
-  transition: {
-    type: 'spring',
-    damping: 10,
-    stiffness: 20,
-    mass: 2
-  }
-}
-</script>
-
-<div
-  v-motion
-  :initial="{ x:35, y: 30, opacity: 0}"
-  :enter="{ y: 0, opacity: 1, transition: { delay: 3500 } }">
-
-[Learn more](https://sli.dev/guide/animations.html#motion)
-
-</div>
-
----
-
-# LaTeX
-
-LaTeX is supported out-of-box. Powered by [KaTeX](https://katex.org/).
-
-<div h-3 />
-
-Inline $\sqrt{3x-1}+(1+x)^2$
-
-Block
-$$ {1|3|all}
-\begin{aligned}
-\nabla \cdot \vec{E} &= \frac{\rho}{\varepsilon_0} \\
-\nabla \cdot \vec{B} &= 0 \\
-\nabla \times \vec{E} &= -\frac{\partial\vec{B}}{\partial t} \\
-\nabla \times \vec{B} &= \mu_0\vec{J} + \mu_0\varepsilon_0\frac{\partial\vec{E}}{\partial t}
-\end{aligned}
-$$
-
-[Learn more](https://sli.dev/features/latex)
-
----
-
-# Diagrams
-
-You can create diagrams / graphs from textual descriptions, directly in your Markdown.
-
-<div class="grid grid-cols-4 gap-5 pt-4 -mb-6">
-
-```mermaid {scale: 0.5, alt: 'A simple sequence diagram'}
-sequenceDiagram
-    Alice->John: Hello John, how are you?
-    Note over Alice,John: A typical interaction
-```
-
-```mermaid {theme: 'neutral', scale: 0.8}
-graph TD
-B[Text] --> C{Decision}
-C -->|One| D[Result 1]
-C -->|Two| E[Result 2]
-```
-
-```mermaid
-mindmap
-  root((mindmap))
-    Origins
-      Long history
-      ::icon(fa fa-book)
-      Popularisation
-        British popular psychology author Tony Buzan
-    Research
-      On effectiveness<br/>and features
-      On Automatic creation
-        Uses
-            Creative techniques
-            Strategic planning
-            Argument mapping
-    Tools
-      Pen and paper
-      Mermaid
-```
-
-```plantuml {scale: 0.7}
-@startuml
-
-package "Some Group" {
-  HTTP - [First Component]
-  [Another Component]
-}
-
-node "Other Groups" {
-  FTP - [Second Component]
-  [First Component] --> FTP
-}
-
-cloud {
-  [Example 1]
-}
-
-database "MySql" {
-  folder "This is my folder" {
-    [Folder 3]
-  }
-  frame "Foo" {
-    [Frame 4]
-  }
-}
-
-[Another Component] --> [Example 1]
-[Example 1] --> [Folder 3]
-[Folder 3] --> [Frame 4]
-
-@enduml
-```
-
-</div>
-
-Learn more: [Mermaid Diagrams](https://sli.dev/features/mermaid) and [PlantUML Diagrams](https://sli.dev/features/plantuml)
-
----
-foo: bar
-dragPos:
-  square: 0,-428,0,0
----
-
-# Draggable Elements
-
-Double-click on the draggable elements to edit their positions.
-
-<br>
-
-###### Directive Usage
-
-```md
-<img v-drag="'square'" src="https://sli.dev/logo.png">
-```
-
-<br>
-
-###### Component Usage
-
-```md
-<v-drag text-3xl>
-  <div class="i-carbon:arrow-up" />
-  Use the `v-drag` component to have a draggable container!
-</v-drag>
-```
-
-<v-drag pos="663,206,261,_,-15">
-  <div text-center text-3xl border border-main rounded>
-    Double-click me!
-  </div>
-</v-drag>
-
-<img v-drag="'square'" src="https://sli.dev/logo.png">
-
-###### Draggable Arrow
-
-```md
-<v-drag-arrow two-way />
-```
-
-<v-drag-arrow pos="67,452,253,46" two-way op70 />
-
----
-src: ./pages/imported-slides.md
-hide: false
----
-
----
-
-# Monaco Editor
-
-Slidev provides built-in Monaco Editor support.
-
-Add `{monaco}` to the code block to turn it into an editor:
-
-```ts {monaco}
-import { ref } from 'vue'
-import { emptyArray } from './external'
-
-const arr = ref(emptyArray(10))
-```
-
-Use `{monaco-run}` to create an editor that can execute the code directly in the slide:
-
-```ts {monaco-run}
-import { version } from 'vue'
-import { emptyArray, sayHello } from './external'
-
-sayHello()
-console.log(`vue ${version}`)
-console.log(emptyArray<number>(10).reduce(fib => [...fib, fib.at(-1)! + fib.at(-2)!], [1, 1]))
+2. Iniciar un contenedor MySQL con volumen para datos persistentes:
+
+```bash
+mkdir -p ~/ lamp-data/mysql
+
+docker run -d \
+--name db \
+-network lamp-network \
+-e MYSQL_ROOT_PASSWORD=secreto \
+-e MYSQL_DATABASE=app \
+-e MYSQL_USER=app_user \
+-e MYSQL_PASSWORD=app_pass \
+-v ~/lamp-data/mysql:/var/lib/mysql \
+mysql: 8.0
 ```
 
 ---
-layout: center
-class: text-center
+
+3. Iniciar un servidor PHP-Apache con tu código:
+
+```bash
+mkdir -p ~/ lamp-data/html
+echo "<?php phpinfo(); ?›" > ~/lamp-data/html/index.php
+
+docker run -d \
+--name web \
+--network lamp-network \
+-p 8080:80 \
+-v ~/lamp-data/html:/var/www/html \
+php: 8.0-apache
+```
+
+4. Verificar que los contenedores se comunican:
+
+```bash
+docker exec -it web bash
+# Dentro del contenedor:
+apt-get update && apt-get install -y default-mysql-client
+mysql -u app_user -papp_pass -h db app
+```
+
+5. Monitorizar los contenedores:
+
+```bash
+docker stats db web
+```
+
 ---
 
-# Learn More
+# ¡Gracias!
 
-[Documentation](https://sli.dev) · [GitHub](https://github.com/slidevjs/slidev) · [Showcases](https://sli.dev/resources/showcases)
+<img src="https://dropsharebluewhale.blob.core.windows.net/dropshare/pb-QVwHyGnMXi.png" width="400" />
 
-<PoweredBySlidev mt-10 />
+---
